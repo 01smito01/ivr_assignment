@@ -41,6 +41,7 @@ def v1signal_publisher():
         joint_2_pub.publish(targetj2)
         joint_3_pub.publish(targetj3)
         joint_4_pub.publish(targetj4)
+        rate.sleep()
 
 
 
