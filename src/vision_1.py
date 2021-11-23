@@ -28,9 +28,18 @@ class image_converter:
         # initialize a publisher to send images from camera1 to a topic named image_topic1 (& image_topic2)
         self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=1)
         self.image_pub2 = rospy.Publisher("image_topic2", Image, queue_size=1)
-        # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw (& /robot/camera1/image_raw) and use callback function to recieve data
+
+        # necessary subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
         self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image, self.callback2)
+
+        #publishers for joint angles?
+
+        self.robot_joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
+        self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
+        self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
+
+
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
