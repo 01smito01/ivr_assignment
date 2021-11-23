@@ -11,7 +11,7 @@ from std_msgs.msg import Float64MultiArray, Float64
 def v1signal_publisher():
 
     #initialise node
-    rospy.init_node('signal_publisher', anonymous=True)
+    rospy.init_node('v1signal_publisher', anonymous=True)
     rate = rospy.Rate(50)
 
     #initialise publishers
