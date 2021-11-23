@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # solution for Section 2.1. This file should initiate a node that subscribes to image topics:
 # ”/camera1/robot/image raw”
 # ”/camera2/robot/image raw”
@@ -5,8 +7,6 @@
 # ”joint angle 2”
 # ”joint angle 3”
 # ”joint angle 4”
-
-# !/usr/bin/env python3
 
 import roslib
 import sys
@@ -25,20 +25,20 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
-        # initialize a publisher to send images from camera1 to a topic named image_topic1 (& image_topic2)
-        self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=1)
-        self.image_pub2 = rospy.Publisher("image_topic2", Image, queue_size=1)
 
-        # necessary subscriptions
+        # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
         self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image, self.callback2)
 
-        #publishers for joint angles?
+        #publishers
 
         self.robot_joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
 
+        # uhh idk
+        self.image_pub1 = rospy.Publisher("image_topic1",Image, queue_size = 1)
+        self.image_pub2 = rospy.Publisher("image_topic2",Image, queue_size = 1)
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
