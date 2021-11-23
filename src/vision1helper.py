@@ -30,9 +30,9 @@ def v1signal_publisher():
         joint_3 = pi/2 * np.sin(curr_time * pi/20)
         joint_4 = pi/2 * np.sin(curr_time * pi/18)
 
-        targetj2 = Float64
-        targetj3 = Float64
-        targetj4 = Float64
+        targetj2 = Float64()
+        targetj3 = Float64()
+        targetj4 = Float64()
 
         targetj2.data = joint_2
         targetj3.data = joint_3
