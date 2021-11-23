@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #file for creation and running etc of sinusoidal signals node
 
 import sys
@@ -9,14 +10,14 @@ from std_msgs.msg import Float64MultiArray, Float64
 
 def signal_publisher():
 
+    #initialise node
+    rospy.init_node('signal_publisher', anonymous=True)
+    rate = rospy.Rate(50)
+
     #get necessary values, constants
     t0 = rospy.get_time()
     curr_time = np.array([rospy.get_time()]) - t0
     pi = np.pi
-
-    #initialise node
-    rospy.init_node('signal_publisher', anonymous=True)
-    rate = rospy.Rate(50)
 
     #calculate joint positions
     joint_2 = pi/2 * np.sin(curr_time * pi/15)
