@@ -34,6 +34,47 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
+    def detect_red(self, image):
+        mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        return np.array([cx, cy])
+
+    def detect_green(self, image):
+        mask = cv2.inRange(image, (0, 100, 0), (0, 255, 0))
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        return np.array([cx, cy])
+
+    def detect_blue(self, image):
+        mask = cv2.inRange(image, (100, 0, 0), (255, 0, 0))
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        return np.array([cx, cy])
+
+    def detect_yellow(self, image):
+        mask = cv2.inRange(image, (0, 100, 100), (0, 255, 255))
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        return np.array([cx, cy])
+
+    def pixel_to_meter(self, image):
+        c1 = self.detect_blue(image)
+        c2 = self.detect_green(image)
+        distance = np.sum((c1 - c2) ** 2)
+        return 3 / np.sqrt(distance)
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
         # Recieve the image
