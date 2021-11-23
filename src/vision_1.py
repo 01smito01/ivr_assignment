@@ -75,6 +75,7 @@ class image_converter:
         c2 = self.detect_green(image)
         distance = np.sum((c1 - c2) ** 2)
         return 3 / np.sqrt(distance)
+
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
         # Recieve the image
