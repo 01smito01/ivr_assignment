@@ -13,6 +13,6 @@ def signal_publisher():
     pi = np.pi
     joint_2 = pi/2 * np.sin(curr_time * pi/15)
     joint_3 = pi/2 * np.sin(curr_time * pi/20)
-    joint4 = pi/2 * np.sin(curr_time ( pi/18))
+    joint4 = pi/2 * np.sin(curr_time * pi/18)
 
 
