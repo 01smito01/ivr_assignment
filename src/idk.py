@@ -25,19 +25,19 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
+        r = rospy.Rate(6)
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
         self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image, self.callback2)
 
-        #publishers
+        # publishers
 
         self.robot_joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
         self.test_pub = rospy.Publisher("red_blob", Float64MultiArray, queue_size=10)
 
-        # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
         # blob location init
@@ -52,7 +52,7 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if(M['m00']!=0.0):
+        if (M['m00'] != 0.0):
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:
@@ -65,7 +65,7 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if(M['m00']!=0.0):
+        if (M['m00'] != 0.0):
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:
@@ -78,7 +78,7 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if(M['m00']!=0.0):
+        if (M['m00'] != 0.0):
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:
@@ -91,7 +91,7 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if(M['m00']!=0.0):
+        if (M['m00'] != 0.0):
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:
@@ -113,48 +113,26 @@ class image_converter:
         c3Pos = a * self.detect_red(image)
 
         ja1 = np.arctan2(center[0] - c1Pos[0], center[1] - c1Pos[1])
-        ja2 = np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) -ja1
+        ja2 = np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) - ja1
         ja3 = np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
 
         return np.array([ja1, ja2, ja3])
 
-    def update_blob_position(self, image, colour, camera):
-        if colour == 'red':
-            temp = self.detect_red(image)
-            if camera == 1: # Camera 1 has vertical z and horizontal y
-                self.red[1] = temp[0]
-                self.red[2] = temp[1]
-            elif camera == 2: # Camera 2 has vertical z and horizontal x
-                self.red[0] = temp[0]
-                self.red[2] = temp[1]
-        elif colour == 'green':
-            temp = self.detect_green(image)
-            if camera == 1:
-                self.green[1] = temp[0]
-                self.green[2] = temp[1]
-            elif camera == 2:
-                self.green[0] = temp[0]
-                self.green[2] = temp[1]
-        elif colour == 'blue':
-            temp = self.detect_blue(image)
-            if camera == 1:
-                self.blue[1] = temp[0]
-                self.blue[2] = temp[1]
-            elif camera == 2:
-                self.blue[0] = temp[0]
-                self.blue[2] = temp[1]
-        elif colour == 'yellow':
-            temp = self.detect_yellow(image)
-            if camera == 1:
-                self.yellow[1] = temp[0]
-                self.yellow[2] = temp[1]
-            elif camera == 2:
-                self.yellow[0] = temp[0]
-                self.yellow[2] = temp[1]
 
+
+    def get_xz(self, image):
+        temp = self.detect_red(image)
+        self.red[0] = temp[0]
+        self.red[2] = temp[1]
+
+    def get_yz(self, image):
+        temp = self.detect_red(image)
+        self.red[1] = temp[0]
+        self.red[2] = temp[1]
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
+        print('callback 1')
         # Receive the image
         try:
             self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -167,31 +145,28 @@ class image_converter:
         im1 = cv2.imshow('window1', self.cv_image1)
         cv2.waitKey(3)
 
+        self.get_yz(self.cv_image1)
+
         joint_data = self.detect_joint_angles(self.cv_image1)
-        self.update_blob_position(self.cv_image1, 'red', 1)
+
+        self.joints = Float64MultiArray()
+        self.joints = joint_data
 
         tst = Float64MultiArray()
         tst.data = np.array(self.red)
 
-        self.joint4 = Float64()
-        self.joint2 = Float64()
-        self.joint2 = joint_data[0]
-        self.joint3 = Float64()
-        self.joint3 = joint_data[1]
-        self.joint4 = joint_data[2]
-
-
         # Publish the results
         try:
-            self.robot_joint2_pub.publish(self.joint2)
-            self.robot_joint3_pub.publish(self.joint3)
-            self.robot_joint4_pub.publish(self.joint4)
+            self.robot_joint2_pub.publish(self.joints[0])
+            self.robot_joint3_pub.publish(self.joints[1])
+            self.robot_joint4_pub.publish(self.joints[2])
             self.test_pub.publish(tst)
         except CvBridgeError as e:
             print(e)
 
     # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
+        print('callback 2')
         # Receive the image
         try:
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -202,10 +177,9 @@ class image_converter:
         im2 = cv2.imshow('window2', self.cv_image2)
         cv2.waitKey(3)
 
-
         joint_data = self.detect_joint_angles(self.cv_image2)
 
-        self.update_blob_position(self.cv_image2, 'red', 2)
+        self.get_xz(self.cv_image1)
 
         tst = Float64MultiArray()
         tst.data = np.array(self.red)

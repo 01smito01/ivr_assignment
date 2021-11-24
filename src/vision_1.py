@@ -127,19 +127,16 @@ class image_converter:
 
         joint_data = self.detect_joint_angles(self.cv_image1)
 
-        self.joint4 = Float64()
-        self.joint2 = Float64()
-        self.joint2 = joint_data[0]
-        self.joint3 = Float64()
-        self.joint3 = joint_data[1]
-        self.joint4 = joint_data[2]
+        self.joints = Float64MultiArray()
+        self.joints = joint_data
+
 
 
         # Publish the results
         try:
-            self.robot_joint2_pub.publish(self.joint2)
-            self.robot_joint3_pub.publish(self.joint3)
-            self.robot_joint4_pub.publish(self.joint4)
+            self.robot_joint2_pub.publish(self.joints[0])
+            self.robot_joint3_pub.publish(self.joints[1])
+            self.robot_joint4_pub.publish(self.joints[2])
         except CvBridgeError as e:
             print(e)
 
