@@ -117,7 +117,7 @@ class image_converter:
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
-        # Recieve the image
+        # Receive the image
         try:
             cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
@@ -148,9 +148,9 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-    # Recieve data, process it, and publish
+    # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
-        # Recieve the image
+        # Receive the image
         try:
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
