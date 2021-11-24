@@ -33,3 +33,14 @@ class control:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
+    #use methods implemented in vision_2 class to detect the position of robot end-effector
+    def detect_end_effector(self, image):
+        a = self.vision_2.pixel_to_meter(image)
+        endPos = a * (self.vision_2.detect_green(image) - self.vision_2.detect_red(image))
+        return endPos
+
+    def forward_kinematics(self, image):
+        joints = self.vision_2.detect_joint_angles(image)
+
+
+

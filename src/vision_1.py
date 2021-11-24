@@ -48,8 +48,12 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
+        if(M['m00']!=0.0):
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+        else:
+            cx = 0
+            cy = 0
         return np.array([cx, cy])
 
     def detect_green(self, image):
@@ -57,8 +61,12 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
+        if(M['m00']!=0.0):
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+        else:
+            cx = 0
+            cy = 0
         return np.array([cx, cy])
 
     def detect_blue(self, image):
@@ -66,8 +74,12 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
+        if(M['m00']!=0.0):
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+        else:
+            cx = 0
+            cy = 0
         return np.array([cx, cy])
 
     def detect_yellow(self, image):
@@ -75,15 +87,19 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
+        if(M['m00']!=0.0):
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+        else:
+            cx = 0
+            cy = 0
         return np.array([cx, cy])
 
     def pixel_to_meter(self, image):
-        c1 = self.detect_blue(image)
-        c2 = self.detect_green(image)
+        c1 = self.detect_yellow(image)
+        c2 = self.detect_blue(image)
         distance = np.sum((c1 - c2) ** 2)
-        return 3 / np.sqrt(distance)
+        return 2.8 / np.sqrt(distance)
 
     def detect_joint_angles(self, image):
         a = self.pixel_to_meter(image)
@@ -111,17 +127,24 @@ class image_converter:
         # cv2.imwrite('image_copy.png', cv_image)
 
         im1 = cv2.imshow('window1', cv_image1)
-        cv2.waitKey(1)
+        cv2.waitKey(3)
 
-        self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image1)
+        joint_data = self.detect_joint_angles(cv_image1)
+
+        self.joint4 = Float64()
+        self.joint2 = Float64()
+        self.joint2 = joint_data[0]
+        self.joint3 = Float64()
+        self.joint3 = joint_data[1]
+        self.joint4 = joint_data[2]
+
 
         # Publish the results
         try:
             self.image_pub1.publish(self.bridge.cv2_to_imgmsg(cv_image1, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            self.robot_joint2_pub.publish(self.joint2)
+            self.robot_joint3_pub.publish(self.joint3)
+            self.robot_joint4_pub.publish(self.joint4)
         except CvBridgeError as e:
             print(e)
 
@@ -134,17 +157,25 @@ class image_converter:
             print(e)
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
-        im2 = cv2.imshow('window2', cv_image2)
-        cv2.waitKey(1)
+        im2 = cv2.imshow('window2', self.cv_image2)
+        cv2.waitKey(3)
 
-        self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image2)
+
+        joint_data = self.detect_joint_angles(self.cv_image2)
+
+        self.joint4 = Float64()
+        self.joint2 = Float64()
+        self.joint2 = joint_data[0]
+        self.joint3 = Float64()
+        self.joint3 = joint_data[1]
+        self.joint4 = joint_data[2]
+
         # Publish the results
         try:
             #self.image_pub2.publish(self.bridge.cv2_to_imgmsg(cv_image2, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            self.robot_joint2_pub.publish(self.joint2)
+            self.robot_joint3_pub.publish(self.joint3)
+            self.robot_joint4_pub.publish(self.joint4)
         except CvBridgeError as e:
             print(e)
 
