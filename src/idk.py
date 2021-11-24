@@ -35,9 +35,17 @@ class image_converter:
         self.robot_joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
+        self.test_pub = rospy.Publisher("red_blob", Float64MultiArray, queue_size=10)
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
+
+        # blob location init
+
+        self.red = [0.0, 0.0, 0.0]
+        self.blue = [0.0, 0.0, 0.0]
+        self.green = [0.0, 0.0, 0.0]
+        self.yellow = [0.0, 0.0, 0.0]
 
     def detect_red(self, image):
         mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
@@ -110,6 +118,40 @@ class image_converter:
 
         return np.array([ja1, ja2, ja3])
 
+    def update_blob_position(self, image, colour, camera):
+        if colour == 'red':
+            temp = self.detect_red(image)
+            if camera == 1: # Camera 1 has vertical z and horizontal y
+                self.red[1] = temp[0]
+                self.red[2] = temp[1]
+            elif camera == 2: # Camera 2 has vertical z and horizontal x
+                self.red[0] = temp[0]
+                self.red[2] = temp[1]
+        elif colour == 'green':
+            temp = self.detect_green(image)
+            if camera == 1:
+                self.green[1] = temp[0]
+                self.green[2] = temp[1]
+            elif camera == 2:
+                self.green[0] = temp[0]
+                self.green[2] = temp[1]
+        elif colour == 'blue':
+            temp = self.detect_blue(image)
+            if camera == 1:
+                self.blue[1] = temp[0]
+                self.blue[2] = temp[1]
+            elif camera == 2:
+                self.blue[0] = temp[0]
+                self.blue[2] = temp[1]
+        elif colour == 'yellow':
+            temp = self.detect_yellow(image)
+            if camera == 1:
+                self.yellow[1] = temp[0]
+                self.yellow[2] = temp[1]
+            elif camera == 2:
+                self.yellow[0] = temp[0]
+                self.yellow[2] = temp[1]
+
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
@@ -126,6 +168,10 @@ class image_converter:
         cv2.waitKey(3)
 
         joint_data = self.detect_joint_angles(self.cv_image1)
+        self.update_blob_position(self.cv_image1, 'red', 1)
+
+        tst = Float64MultiArray()
+        tst.data = np.array(self.red)
 
         self.joint4 = Float64()
         self.joint2 = Float64()
@@ -140,6 +186,7 @@ class image_converter:
             self.robot_joint2_pub.publish(self.joint2)
             self.robot_joint3_pub.publish(self.joint3)
             self.robot_joint4_pub.publish(self.joint4)
+            self.test_pub.publish(tst)
         except CvBridgeError as e:
             print(e)
 
@@ -158,16 +205,21 @@ class image_converter:
 
         joint_data = self.detect_joint_angles(self.cv_image2)
 
-        self.joint4 = Float64()
+        self.update_blob_position(self.cv_image2, 'red', 2)
+
+        tst = Float64MultiArray()
+        tst.data = np.array(self.red)
+
         self.joint2 = Float64()
-        self.joint2 = joint_data[0]
         self.joint3 = Float64()
+        self.joint4 = Float64()
+
+        self.joint2 = joint_data[0]
         self.joint3 = joint_data[1]
         self.joint4 = joint_data[2]
 
         # Publish the results
         try:
-            #self.image_pub2.publish(self.bridge.cv2_to_imgmsg(cv_image2, "bgr8"))
             self.robot_joint2_pub.publish(self.joint2)
             self.robot_joint3_pub.publish(self.joint3)
             self.robot_joint4_pub.publish(self.joint4)

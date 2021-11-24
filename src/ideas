@@ -1,5 +1,8 @@
 Vision:
+use both cameras to track (x,y,z) of each joint
+work out angles from vectors?
+
 
 FK:
 Get joint angles from part 2
-Get link lengths from chamfer matching?
+Get link lengths from pdf.
