@@ -32,3 +32,4 @@ class control:
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
+
