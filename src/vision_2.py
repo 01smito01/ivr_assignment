@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # solution for Section 2.2. This file should initiate a node that subscribes to image topics:
 # ”/camera1/robot/image raw”
 # ”/camera2/robot/image raw”
@@ -5,6 +7,8 @@
 # ”joint angle 1”
 # ”joint angle 3”
 # ”joint angle 4”
+
+
 import roslib
 import sys
 import rospy
@@ -97,7 +101,7 @@ class vision_2:
     def callback1(self, data):
         # Receive the image
         try:
-            cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
@@ -108,14 +112,14 @@ class vision_2:
         cv2.waitKey(1)
 
         self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image1)
+        self.joints.data = self.detect_joint_angles(self.cv_image1)
 
         # Publish the results
         try:
-            self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            # self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
+            self.robot_joint1_pub.publish(self.joints.data[0])
+            self.robot_joint3_pub.publish(self.joints.data[1])
+            self.robot_joint4_pub.publish(self.joints.data[2])
         except CvBridgeError as e:
             print(e)
 
@@ -123,7 +127,7 @@ class vision_2:
     def callback2(self, data):
         # Receive the image
         try:
-            cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
         # Uncomment if you want to save the image
@@ -132,12 +136,26 @@ class vision_2:
         cv2.waitKey(1)
 
         self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image2)
+        self.joints.data = self.detect_joint_angles(self.cv_image2)
         # Publish the results
         try:
-            self.image_pub2.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            # self.image_pub2.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
+            self.robot_joint1_pub.publish(self.joints.data[0])
+            self.robot_joint3_pub.publish(self.joints.data[1])
+            self.robot_joint4_pub.publish(self.joints.data[2])
         except CvBridgeError as e:
             print(e)
+
+# call the class
+def main(args):
+    ic = vision_2()
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+    cv2.destroyAllWindows()
+
+
+# run the code if the node is called
+if __name__ == '__main__':
+    main(sys.argv)
