@@ -36,10 +36,6 @@ class image_converter:
         self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
 
-        # uhh idk
-        self.image_pub1 = rospy.Publisher("image_topic1",Image, queue_size = 1)
-        self.image_pub2 = rospy.Publisher("image_topic2",Image, queue_size = 1)
-
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
@@ -103,25 +99,25 @@ class image_converter:
     def callback1(self, data):
         # Recieve the image
         try:
-            cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
 
-        im1 = cv2.imshow('window1', cv_image1)
+        im1 = cv2.imshow('window1', self.cv_image1)
         cv2.waitKey(1)
 
         self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image1)
+        self.joints.data = self.detect_joint_angles(self.cv_image1)
 
         # Publish the results
         try:
-            self.image_pub1.publish(self.bridge.cv2_to_imgmsg(cv_image1, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            #self.image_pub1.publish(self.bridge.cv2_to_imgmsg(cv_image1, "bgr8"))
+            self.robot_joint2_pub.publish(self.joints.data[0])
+            self.robot_joint3_pub.publish(self.joints.data[1])
+            self.robot_joint4_pub.publish(self.joints.data[2])
         except CvBridgeError as e:
             print(e)
 
@@ -134,17 +130,17 @@ class image_converter:
             print(e)
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
-        im2 = cv2.imshow('window2', cv_image2)
+        im2 = cv2.imshow('window2', self.cv_image2)
         cv2.waitKey(1)
 
         self.joints = Float64MultiArray()
-        self.joints.data = self.detect_joint_angles(cv_image2)
+        self.joints.data = self.detect_joint_angles(self.cv_image2)
         # Publish the results
         try:
             #self.image_pub2.publish(self.bridge.cv2_to_imgmsg(cv_image2, "bgr8"))
-            self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
+            self.robot_joint2_pub.publish(self.joints.data[0])
+            self.robot_joint3_pub.publish(self.joints.data[1])
+            self.robot_joint4_pub.publish(self.joints.data[2])
         except CvBridgeError as e:
             print(e)
 
