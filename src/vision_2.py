@@ -85,8 +85,8 @@ class vision_2:
 
     def detect_joint_angles(self, image):
         a = self.pixel_to_meter(image)
-        center = a * self.detect_green(image)
-        c1Pos = a * self.detect_yellow(image)
+        center = a * self.detect_yellow(image)
+        c1Pos = a * self.detect_green(image)
         c2Pos = a * self.detect_blue(image)
         c3Pos = a * self.detect_red(image)
 
