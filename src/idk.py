@@ -132,19 +132,11 @@ class image_converter:
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
-        print('callback 1')
         # Receive the image
         try:
             self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-
-        # Uncomment if you want to save the image
-        # cv2.imwrite('image_copy.png', cv_image)
-
-        im1 = cv2.imshow('window1', self.cv_image1)
-        cv2.waitKey(3)
-
         self.get_yz(self.cv_image1)
 
         joint_data = self.detect_joint_angles(self.cv_image1)
@@ -166,15 +158,14 @@ class image_converter:
 
     # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
-        print('callback 2')
         # Receive the image
         try:
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-        # Uncomment if you want to save the image
-        # cv2.imwrite('image_copy.png', cv_image)
-        im2 = cv2.imshow('window2', self.cv_image2)
+
+        im1 = cv2.imshow('Camera 1', self.cv_image1)
+        im2 = cv2.imshow('Camera 2', self.cv_image2)
         cv2.waitKey(3)
 
         joint_data = self.detect_joint_angles(self.cv_image2)
