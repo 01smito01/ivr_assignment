@@ -7,6 +7,7 @@
 # ”joint angle 2”
 # ”joint angle 3”
 # ”joint angle 4”
+import math
 
 import roslib
 import sys
@@ -25,7 +26,7 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
-        r = rospy.Rate(6)
+        r = rospy.Rate(100)
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
@@ -36,13 +37,11 @@ class image_converter:
         self.robot_joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
-        self.test_pub = rospy.Publisher("red_blob", Float64MultiArray, queue_size=10)
-
         self.bridge = CvBridge()
 
         # blob location init
 
-        self.red = [0.0, 0.0, 0.0]
+        self.red = np.array([0.0, 0.0, 0.0])
         self.blue = [0.0, 0.0, 0.0]
         self.green = [0.0, 0.0, 0.0]
         self.yellow = [0.0, 0.0, 0.0]
@@ -100,10 +99,10 @@ class image_converter:
         return np.array([cx, cy])
 
     def pixel_to_meter(self, image):
-        c1 = self.detect_yellow(image)
-        c2 = self.detect_blue(image)
+        c1 = self.detect_green(image)
+        c2 = self.detect_yellow(image)
         distance = np.sum((c1 - c2) ** 2)
-        return 2.8 / np.sqrt(distance)
+        return 4 / np.sqrt(distance)
 
     def detect_joint_angles(self, image):
         a = self.pixel_to_meter(image)
@@ -120,15 +119,42 @@ class image_converter:
 
 
 
-    def get_xz(self, image):
-        temp = self.detect_red(image)
-        self.red[0] = temp[0]
-        self.red[2] = temp[1]
+    def get_xz(self, blob, detector):
+        temp = blob
+        detection = detector
+        temp[0] = detection[0]
+        temp[2] = detection[1]
+        return np.array(temp)
 
-    def get_yz(self, image):
-        temp = self.detect_red(image)
-        self.red[1] = temp[0]
-        self.red[2] = temp[1]
+    def get_yz(self, blob, detector):
+        temp = blob
+        detection = detector
+        temp[1] = detection[0]
+        temp[2] = detection[1]
+        return np.array(temp)
+
+    def reject_outlier(self, old, new):
+        if abs(old - new) > 0.1*old:
+            return old
+        else:
+            return new
+    def vec_angle(self, base, end_a, end_b):
+        v1 = end_a - base
+        v2 = end_b - base
+        v3 = np.cross(v1, v2)  # Cross product for sign detection
+
+
+        n1 = v1/np.linalg.norm(v1)
+        n2 = v2/np.linalg.norm(v2)
+        dot = np.dot(n1, n2)
+        return np.arccos(dot)
+
+    def dotproduct(self, vec1, vec2):
+        return sum((a*b) for a, b in zip(vec1, vec2))
+
+    def length(self, vec):
+        return math.sqrt(self.dotproduct(vec, vec))
+
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
@@ -137,22 +163,23 @@ class image_converter:
             self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-        self.get_yz(self.cv_image1)
+
+        self.red = self.get_yz(self.red, self.detect_red(self.cv_image1))
+        self.green = self.get_yz(self.green, self.detect_green(self.cv_image1))
+        self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1))
+        self.yellow = self.get_yz(self.yellow, self.detect_yellow(self.cv_image1))
+
 
         joint_data = self.detect_joint_angles(self.cv_image1)
 
         self.joints = Float64MultiArray()
         self.joints = joint_data
 
-        tst = Float64MultiArray()
-        tst.data = np.array(self.red)
-
         # Publish the results
         try:
             self.robot_joint2_pub.publish(self.joints[0])
             self.robot_joint3_pub.publish(self.joints[1])
-            self.robot_joint4_pub.publish(self.joints[2])
-            self.test_pub.publish(tst)
+            # self.robot_joint4_pub.publish(self.joints[2])
         except CvBridgeError as e:
             print(e)
 
@@ -170,24 +197,19 @@ class image_converter:
 
         joint_data = self.detect_joint_angles(self.cv_image2)
 
-        self.get_xz(self.cv_image1)
+        self.red = self.get_xz(self.red, self.detect_red(self.cv_image2))
+        self.green = self.get_xz(self.green, self.detect_green(self.cv_image2))
+        self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image2))
+        self.yellow = self.get_xz(self.yellow, self.detect_yellow(self.cv_image2))
 
-        tst = Float64MultiArray()
-        tst.data = np.array(self.red)
-
-        self.joint2 = Float64()
-        self.joint3 = Float64()
-        self.joint4 = Float64()
-
-        self.joint2 = joint_data[0]
-        self.joint3 = joint_data[1]
-        self.joint4 = joint_data[2]
-
+        self.joints = Float64MultiArray()
+        self.joints = joint_data
+        # print(self.vec_angle(self.blue, self.yellow, self.red))
         # Publish the results
         try:
-            self.robot_joint2_pub.publish(self.joint2)
-            self.robot_joint3_pub.publish(self.joint3)
-            self.robot_joint4_pub.publish(self.joint4)
+            self.robot_joint2_pub.publish(self.joints[0])
+            self.robot_joint3_pub.publish(self.joints[1])
+            self.robot_joint4_pub.publish(self.vec_angle(self.blue, self.yellow, self.red))  # self.joints[2])
         except CvBridgeError as e:
             print(e)
 
