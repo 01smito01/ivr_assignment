@@ -18,6 +18,7 @@ class control:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
+        rate = rospy.Rate(50)
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("joint_angle_1", Image, self.callback1)
@@ -32,6 +33,12 @@ class control:
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
+
+        #initialize errors etc
+        self.time_initial = rospy.get_time()
+        self.time_prev = np.array([rospy.get_time()], dtype='floatt64')
+        self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
+        self.errorderived = np.array([0.0, 0.0, 0.0], dtype='float64')
 
     #use methods implemented in vision_2 class to detect the position of robot end-effector
     def detect_end_effector(self, image):
