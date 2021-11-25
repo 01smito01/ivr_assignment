@@ -60,9 +60,8 @@ class control:
         j31 = np.cos(joints[1])
         j32 = -joints[0] * np.sin(joints[1])
         j33 = 0
-        jacobian = np.array([j11, j12, j13], [j21, j22, j23], [j31, j32, j33])
+        jacobian = np.array([[j11, j12, j13], [j21, j22, j23], [j31, j32, j33]])
         return jacobian
-
 
 
 
