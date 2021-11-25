@@ -42,11 +42,28 @@ class control:
     def forward_kinematics(self, image):
         joints = self.vision_2.detect_joint_angles(image)
         #calculate each entry for the array to return
-        effector1 = 3.8 * np.sin(joints[0]) * np.sin(joints[1]) + 2.3*(np.cos(joints[0])*np.sin(joints[2]) + np.sin(joints[0]*np.sin(joints[1]*np.cos(joints[2]))))
+        effector1 = 3.2 * np.sin(joints[0]) * np.sin(joints[1]) + 2.8*(np.cos(joints[0])*np.sin(joints[2]) + np.sin(joints[0]*np.sin(joints[1]*np.cos(joints[2]))))
         effector2 = 2.8 * (np.sin(joints[0]) * np.sin(joints[2]) - np.cos(joints[0]) * np.sin(joints[1]) * np.cos(joints[2]))
-        effector3 = -3.8 * (np.cos(joints[0]) * np.sin(joints[1])) * 2.8 * np.cos(joints[1]) * np.cos(joints[2]) + 3.8 * np.cos(joints[1]) +4
+        effector3 = -3.2 * (np.cos(joints[0]) * np.sin(joints[1])) * 2.8 * np.cos(joints[1]) * np.cos(joints[2]) + 3.2 * np.cos(joints[1]) +4
         end_effector = np.array([effector1, effector2, effector3])
         return end_effector
+
+    def jacobian(self, image):
+        joints = self.vision_2.detect_joint_angles(image)
+        #calculate each jacobian matrix element individually (for readability)
+        j11 = np.sin(joints[1]) * np.cos(joints[2])
+        j12 = joints[0] * np.cos(joints[1]) * np.cos(joints[2])
+        j13 = -joints[0] * np.sin(joints[1]) + np.sin(joints[2])
+        j21 = np.sin(joints[1]) * np.sin(joints[2])
+        j22 = joints[0] * np.cos(joints[1]) * np.sin(joints[2])
+        j23 = joints[0] * np.sin(joints[1]) * np.cos(joints[2])
+        j31 = np.cos(joints[1])
+        j32 = -joints[0] * np.sin(joints[1])
+        j33 = 0
+        jacobian = np.array([j11, j12, j13], [j21, j22, j23], [j31, j32, j33])
+        return jacobian
+
+
 
 
 
