@@ -17,6 +17,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64MultiArray, Float64
 from cv_bridge import CvBridge, CvBridgeError
+pi = np.pi
 
 
 class image_converter:
@@ -25,6 +26,7 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
+        r = rospy.Rate(10)
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
@@ -85,6 +87,14 @@ class image_converter:
         distance = np.sum((c1 - c2) ** 2)
         return 4 / np.sqrt(distance)
 
+    def unit_vector(self, vector):
+        return vector / np.linalg.norm(vector)
+
+    def angle(self, v1, v2):
+        v1u = self.unit_vector(v1)
+        v2u = self.unit_vector(v2)
+        return np.arccos(np.clip(np.dot(v1u, v2u), -1.0, 1.0))
+
     def detect_joint_angles(self, image, caller):
         a = self.pixel_to_meter()
         center = a * self.green
@@ -123,6 +133,30 @@ class image_converter:
         self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
         self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
         # only publish with callback 2 due to some nasty concurrency issues
+    def j2(self):
+        yellowgreen = self.green - self.yellow
+        yellowblue = self.blue - self.yellow
+
+        yg_xz = np.array([yellowgreen[0], yellowgreen[2]])
+        yb_xz = np.array([yellowblue[0], yellowblue[2]])
+        angle = self.angle(yg_xz, yb_xz)
+
+        # honestly I just fucked about with these until the graph looked right
+        if angle > pi/2:
+            angle = pi - angle
+        if angle < -pi/2:
+            angle = -pi - angle
+        if self.blue[0] > 400:
+            angle = -angle
+        return angle
+
+    # Takes 2 vectors, returns an unsigned angle between them
+    def vec_angle(self, ab, ac):
+        n1 = ab / np.linalg.norm(ab)
+        n2 = ab / np.linalg.norm(ac)
+        dot = np.dot(n1, n2)
+        angle = np.arccos(dot)
+        return angle
 
     # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
@@ -143,7 +177,7 @@ class image_converter:
 
         # Publish the results
         try:
-            self.robot_joint2_pub.publish(joint_angles[0])
+            self.robot_joint2_pub.publish(self.j2())  # joint_angles[0])
             self.robot_joint3_pub.publish(joint_angles[1])
             self.robot_joint4_pub.publish(joint_angles[2])
         except CvBridgeError as e:
