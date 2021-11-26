@@ -104,7 +104,7 @@ class image_converter:
     # Takes 2 vectors, returns an unsigned angle between them
     def vec_angle(self, ab, ac):
         n1 = ab / np.linalg.norm(ab)
-        n2 = ab / np.linalg.norm(ab)
+        n2 = ab / np.linalg.norm(ac)
         dot = np.dot(n1, n2)
         angle = np.arccos(dot)
         return angle
@@ -112,13 +112,19 @@ class image_converter:
     def abvector(self, a, b):
         return b - a
 
+    def joint1(self, angle):
+        a = angle
+        if self.blue[0] < 400:
+            a *= -1
+        return a
+
     def joint2(self, angle):
         a = angle
         if a > pi/2:
             a = pi - a
         if a < -pi/2:
             a = -pi - a
-        if self.base_relative(self.blue)[0] < 0:  # Use other sign - necessary or curve imitates abs(sin)
+        if self.rebase(self.blue)[0] < 0:  # Use other sign - necessary or curve imitates abs(sin)
             a *= -1
         return a
 
@@ -130,7 +136,6 @@ class image_converter:
             a = -pi - a
         return a
 
-    # TODO fix this
     def joint4(self, angle):
         a = angle
         if a > pi/2:
@@ -140,7 +145,7 @@ class image_converter:
         return a
 
     # makes coordinates relative to the green blob
-    def base_relative(self, point):
+    def rebase(self, point):
         x = point[0] - self.green[0]
         y = point[1] - self.green[1]
         z = point[2] - self.green[2]
@@ -152,18 +157,19 @@ class image_converter:
         z_unit = np.array([0, 0, 1])
 
         # rebasing things wrt the green blob because it makes thinking about the stinky maths easier
-        r = self.base_relative(self.red)
-        g = self.base_relative(self.green)
-        b = self.base_relative(self.blue)
-        y = self.base_relative(self.yellow)
+        r = self.rebase(self.red)
+        g = self.rebase(self.green)
+        b = self.rebase(self.blue)
+        y = self.rebase(self.yellow)
         yb = b - y
         br = r - b
 
         newframe = np.cross(y_unit, yb)
+        joint_1 = self.joint1(self.vec_angle(yb[:2], -y_unit[:2]))
         joint_2 = self.joint2(self.vec_angle(newframe, x_unit))
         joint_3 = self.joint3(self.vec_angle(yb, y_unit)) - pi/2
         joint_4 = self.joint4(self.vec_angle(-yb, br))  # are you sure?
-        if np.dot(br, newframe) <0:
+        if np.dot(br, newframe) < 0:
             joint_4 *= -1
         return np.array([joint_2, joint_3, joint_4])
 
