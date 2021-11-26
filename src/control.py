@@ -14,12 +14,13 @@ from cv_bridge import CvBridge, CvBridgeError
 
 class control:
     # initialise
-    targ = Float64MultiArray()
+    target = Float64MultiArray()
     joint1 = Float64()
     joint3 = Float64()
     joint4 = Float64()
     joints = np.array([joint1, joint3, joint4])
-    target = np.array([targ.data])
+
+
 
     # Defines publisher and subscriber
     def __init__(self):
@@ -50,16 +51,17 @@ class control:
         self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
         self.errorderived = np.array([0.0, 0.0, 0.0], dtype='float64')
 
-        self.joint1 = control.joint1
-        self.joint3 = control.joint3
-        self.joint4 = control.joint4
+
+
 
 
     def getJoints(self):
         joints = [j.data for j in control.joints]
         return joints
 
-
+    def getTarget(self):
+        targetget = control.target.data
+        return np.array(targetget)
 
     def forward_kinematics(self, joints):
         #calculate each entry for the array to return
@@ -88,20 +90,20 @@ class control:
         dt = curr_time - self.time_prev
         self.time_prev = curr_time
         q = self.getJoints()
+        print("q", q)
+        target = self.getTarget()
         inv_j = np.linalg.pinv(self.jacobian(q))
         pos = np.array(self.forward_kinematics(q))
-        desired_pos = np.array(self.target)
+        desired_pos = target
         self.error = (desired_pos - pos)/dt
         desired_q = q + (dt * np.dot(inv_j, self.error.transpose()))
-        print("desired", desired_q)
-        print("q", q)
         return desired_q
 
     #publish robot joint infornation
 
     def callback(self, data):
         rospy.loginfo("Target is %s", data.data)
-        self.target = data.data
+        self.target.data = data.data
 
     def callback1(self, data):
         rospy.loginfo("Joint1 is %s", data.data)
