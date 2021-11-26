@@ -26,7 +26,6 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
-        r = rospy.Rate(10)
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
@@ -101,19 +100,6 @@ class image_converter:
         v2u = self.unit_vector(v2)
         return np.arccos(np.clip(np.dot(v1u, v2u), -1.0, 1.0))
 
-    def detect_joint_angles(self, image, caller):
-        a = self.pixel_to_meter()
-        center = a * self.green
-        c1Pos = a * self.yellow
-        c2Pos = a * self.detect_blue(image, caller)
-        c3Pos = a * self.detect_red(image, caller)
-
-        ja1 = np.arctan2(center[0] - c1Pos[0], center[1] - c1Pos[1])
-        ja2 = np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) - ja1
-        ja3 = np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
-
-        return np.array([ja1, ja2, ja3])
-
     # coords from our cameras
     def get_xz(self, blob, detector):
         temp = blob
@@ -169,7 +155,9 @@ class image_converter:
         if angle < -pi/2:
             angle = -pi - angle
 
-        # TODO some quadrant based magic
+        # Simplistic quadrant maths to get correct sign
+        if self.blue[0] < 400 and self.blue[1] < 400:
+           angle = -angle
         return angle
 
     # Recieve data from camera 1, process it
@@ -180,7 +168,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        print(self.red)
+        print([str(self.blue[0] - 400), str(self.blue[1] - 400)])
         self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
         self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
         # only publish with callback 2 due to some nasty concurrency issues
