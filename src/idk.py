@@ -101,37 +101,62 @@ class image_converter:
         temp[2] = detection[1]
         return np.array(temp)
 
-    # takes 3 linked points and spits out the acutest angle between them
-    def vec_angle(self, base, end_a, end_b):
-        v1 = end_a - base
-        v2 = end_b - base
-
-        n1 = v1 / np.linalg.norm(v1)
-        n2 = v2 / np.linalg.norm(v2)
+    # Takes 2 vectors, returns an unsigned angle between them
+    def vec_angle(self, ab, ac):
+        n1 = ab / np.linalg.norm(ab)
+        n2 = ab / np.linalg.norm(ab)
         dot = np.dot(n1, n2)
         angle = np.arccos(dot)
-        cross = np.cross(v1, v2)
-
-        if np.dot(cross, cross) < 0:
-            angle = -angle
         return angle
 
-    def dotproduct(self, vec1, vec2):
-        return sum((a * b) for a, b in zip(vec1, vec2))
+    def abvector(self, a, b):
+        return b - a
 
-    def length(self, vec):
-        return math.sqrt(self.dotproduct(vec, vec))
+    def joint2(self):
+        # calculate movement around y
 
-    def joint3side(self):
-        angle = self.vec_angle(self.yellow, self.green, self.blue)
+
+        angle = 111.1
+        return angle
+
+    def joint3(self):
+        angle = self.vec_angle(self.abvector(self.yellow, self.green), self.abvector(self.yellow, self.blue))
         if angle > pi/2:
             angle = pi - angle
         elif angle < -pi/2:
             angle = angle - pi
         return angle
 
+    def joint4(self):
+        angle = self.vec_angle(self.abvector(self.blue, self.yellow), self.abvector(self.blue, self.red))
+        return angle
 
-    # Recieve data from camera 1, process it, and publish
+    # makes coordinates relative to the green blob
+    def base_relative(self, point):
+        x = point[0] - self.green[0]
+        y = point[1] - self.green[1]
+        z = point[2] - self.green[2]
+        return np.array([x, y, z])
+
+    def calculate_joint_angles(self):
+        x_unit = np.array([1, 0, 0])
+        y_unit = np.array([0, 1, 0])
+        z_unit = np.array([0, 0, 1])
+
+        r = self.base_relative(self.red)
+        g = self.base_relative(self.green)
+        b = self.base_relative(self.blue)
+        y = self.base_relative(self.yellow)
+        yb = b - y
+
+        newframe = np.cross(y_unit, yb)
+
+
+
+
+
+
+    # Recieve data from camera 1, process it
     def callback1(self, data):
         # Receive the image
         try:
@@ -141,12 +166,6 @@ class image_converter:
 
         self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
         self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
-
-        joint_data = self.detect_joint_angles(self.cv_image1, 1)
-
-        self.joints = Float64MultiArray()
-        self.joints = joint_data
-
         # this one doesn't publish because I can't get them both to play nice
 
     # Recieve data from camera 2, process it, and publish
@@ -172,7 +191,7 @@ class image_converter:
         # Publish the results
         try:
             self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joint3side())  # self.joints[1])
+            self.robot_joint3_pub.publish(self.joint3())  # self.joints[1])
             self.robot_joint4_pub.publish(self.vec_angle(self.blue, self.yellow, self.red))  # self.joints[2])
         except CvBridgeError as e:
             print(e)
