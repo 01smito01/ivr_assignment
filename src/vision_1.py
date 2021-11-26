@@ -98,6 +98,20 @@ class image_converter:
 
         return np.array([ja1, ja2, ja3])
 
+    # coords from our cameras
+    def get_xz(self, blob, detector):
+        temp = blob
+        detection = detector
+        temp[0] = detection[0]
+        temp[2] = detection[1]
+        return np.array(temp)
+
+    def get_yz(self, blob, detector):
+        temp = blob
+        detection = detector
+        temp[1] = detection[0]
+        temp[2] = detection[1]
+        return np.array(temp)
     # Recieve data from camera 1, process it
     def callback1(self, data):
         # Receive the image
@@ -106,8 +120,8 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        self.red = get_yz(self.red, self.detect_red(self.cv_image1, 1))
-        self.blue = get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
+        self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
+        self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
         # only publish with callback 2 due to some nasty concurrency issues
 
     # Recieve data from camera 2, process it, and publish
@@ -117,12 +131,13 @@ class image_converter:
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-        im2 = cv2.imshow('window2', self.cv_image2)
+        im1 = cv2.imshow('Camera 1', self.cv_image1)
+        im2 = cv2.imshow('Camera 2', self.cv_image2)
         cv2.waitKey(3)
 
         joint_data = self.detect_joint_angles(self.cv_image2, 2)
-        self.red = get_xz(self.red, self.detect_red(self.cv_image1, 2))
-        self.blue = get_xz(self.blue, self.detect_blue(self.cv_image1, 2))
+        self.red = self.get_xz(self.red, self.detect_red(self.cv_image1, 2))
+        self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image1, 2))
         joint_angles = Float64MultiArray()
         joint_angles = joint_data
 
@@ -148,19 +163,4 @@ def main(args):
 # run the code if the node is called
 if __name__ == '__main__':
     main(sys.argv)
-
-# coords from our cameras
-def get_xz(blob, detector):
-    temp = blob
-    detection = detector
-    temp[0] = detection[0]
-    temp[2] = detection[1]
-    return np.array(temp)
-
-def get_yz(blob, detector):
-    temp = blob
-    detection = detector
-    temp[1] = detection[0]
-    temp[2] = detection[1]
-    return np.array(temp)
 
