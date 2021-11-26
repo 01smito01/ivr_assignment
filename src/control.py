@@ -13,11 +13,18 @@ from cv_bridge import CvBridge, CvBridgeError
 
 
 class control:
+    # initialise
+    targ = Float64MultiArray()
+    joint1 = Float64()
+    joint3 = Float64()
+    joint4 = Float64()
+    joints = np.array([joint1, joint3, joint4])
+    target = np.array([targ.data])
 
     # Defines publisher and subscriber
     def __init__(self):
         # initialize the node named image_processing
-        rospy.init_node('image_processing', anonymous=True)
+        rospy.init_node('control', anonymous=True)
         rate = rospy.Rate(50)
 
         # subscriptions
@@ -39,19 +46,20 @@ class control:
 
         #initialize errors etc
         self.time_initial = rospy.get_time()
-        self.time_prev = np.array([rospy.get_time()], dtype='floatt64')
+        self.time_prev = np.array([rospy.get_time()], dtype='float64')
         self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
         self.errorderived = np.array([0.0, 0.0, 0.0], dtype='float64')
 
+        self.joint1 = control.joint1
+        self.joint3 = control.joint3
+        self.joint4 = control.joint4
 
-        #initialise
-        self.target = Float64MultiArray()
-        self.joint1 = Float64()
-        self.joint3 = Float64()
-        self.joint4 = Float64()
-        self.joints = np.array([self.joint1, self.joint3, self.joint4])
 
-    #use methods implemented in vision_2 class to detect the position of robot end-effector
+    def getJoints(self):
+        joints = [j.data for j in control.joints]
+        return joints
+
+
 
     def forward_kinematics(self, joints):
         #calculate each entry for the array to return
@@ -75,58 +83,68 @@ class control:
         jacobian = np.array([[j11, j12, j13], [j21, j22, j23], [j31, j32, j33]])
         return jacobian
 
-    def control(self, joints):
+    def control(self):
         curr_time = rospy.get_time()
         dt = curr_time - self.time_prev
         self.time_prev = curr_time
-        q = joints
-        inv_j = np.linalg.pinv(self.jacobian(joints))
-        pos = np.array(self.forward_kinematics(joints))
+        q = self.getJoints()
+        inv_j = np.linalg.pinv(self.jacobian(q))
+        pos = np.array(self.forward_kinematics(q))
         desired_pos = np.array(self.target)
         self.error = (desired_pos - pos)/dt
         desired_q = q + (dt * np.dot(inv_j, self.error.transpose()))
+        print("desired", desired_q)
+        print("q", q)
         return desired_q
 
     #publish robot joint infornation
 
     def callback(self, data):
-        targetdata = self.target_sub
-        rospy.loginfo(data.data)
-        self.target.data = data
+        rospy.loginfo("Target is %s", data.data)
+        self.target = data.data
 
     def callback1(self, data):
-        rospy.loginfo(data.data)
-        self.joint1.data = data
+        rospy.loginfo("Joint1 is %s", data.data)
+        self.joint1 = data.data
 
     def callback2(self, data):
-        rospy.loginfo(data.data)
-        self.joint3.data = data
+        rospy.loginfo("Joint3 is %s", data.data)
+        self.joint3 = data.data
 
     def callback3(self, data):
-        rospy.loginfo(data.data)
-        self.joint4.data = data
+        rospy.loginfo("Joint4 is %s", data.data)
+        self.joint4 = data.data
 
-        q_d = self.control(self.joints)
-        self.joint1 = Float64()
-        self.joint1.data = q_d[0]
-        self.joint3 = Float64()
-        self.joint3.data = q_d[1]
-        self.joint4 = Float64()
-        self.joint4.data = q_d[2]
+        q_d = self.control()
 
-        try:
-            self.robot_joint1_pub.publish(self.joint1)
-            self.robot_joint3_pub.publish(self.joint3)
-            self.robot_joint4_pub.publish(self.joint4)
-        except Exception as e:
-            print(e)
+        targetjoint1 = Float64()
+        targetjoint1.data = q_d[0]
+        targetjoint3 = Float64()
+        targetjoint3.data = q_d[1]
+        targetjoint4 = Float64()
+        targetjoint4.data = q_d[2]
+
+        self.robot_joint1_pub.publish(targetjoint1)
+        self.robot_joint3_pub.publish(targetjoint3)
+        self.robot_joint4_pub.publish(targetjoint4)
 
 
-if __name__ == '__main__':
+
+
+
+
+
+def main(args):
+    ic = control()
     try:
-        control()
-    except rospy.ROSInterruptException:
-        pass
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+    cv2.destroyAllWindows()
 
+
+# run the code if the node is called
+if __name__ == '__main__':
+    main(sys.argv)
 
 

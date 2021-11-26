@@ -132,7 +132,9 @@ class vision_2:
             print(e)
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
-        im2 = cv2.imshow('window2', self.cv_image2)
+
+        im1 = cv2.imshow('Camera 1', self.cv_image1)
+        im2 = cv2.imshow('Camera 2', self.cv_image2)
         cv2.waitKey(1)
 
         self.joints = Float64MultiArray()
