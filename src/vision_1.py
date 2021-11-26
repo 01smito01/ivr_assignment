@@ -54,7 +54,7 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if (M['m00'] != 0.0):
+        if M['m00'] != 0.0:
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:  # ASSUMPTION: if you can't see the blob, pretend it's where you last saw it
@@ -73,12 +73,18 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
-        if (M['m00'] != 0.0):
+        if M['m00'] != 0.0:
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
         else:
-            cx = 0
-            cy = 0
+            if caller == 1:
+                cx = self.blue[1]
+            elif caller == 2:
+                cx = self.blue[0]
+            else:  # This shouldn't ever happen
+                print("Warning: trying to pass data from a nonexistent camera")
+                cx = 0
+            cy = self.red[2]
         return np.array([cx, cy])
 
     def pixel_to_meter(self):
@@ -122,17 +128,7 @@ class image_converter:
         temp[1] = detection[0]
         temp[2] = detection[1]
         return np.array(temp)
-    # Recieve data from camera 1, process it
-    def callback1(self, data):
-        # Receive the image
-        try:
-            self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        except CvBridgeError as e:
-            print(e)
 
-        self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
-        self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
-        # only publish with callback 2 due to some nasty concurrency issues
     def j2(self):
         yellowgreen = self.green - self.yellow
         yellowblue = self.blue - self.yellow
@@ -150,13 +146,44 @@ class image_converter:
             angle = -angle
         return angle
 
-    # Takes 2 vectors, returns an unsigned angle between them
-    def vec_angle(self, ab, ac):
-        n1 = ab / np.linalg.norm(ab)
-        n2 = ab / np.linalg.norm(ac)
-        dot = np.dot(n1, n2)
-        angle = np.arccos(dot)
+    def j3(self):
+        yellowgreen = self.green - self.yellow
+        yellowblue = self.blue - self.yellow
+        yg_yz = np.array([yellowgreen[1], yellowgreen[2]])
+        yb_yz = np.array([yellowblue[1], yellowblue[2]])
+        angle = self.angle(yg_yz, yb_yz)
+        if angle > pi/2:
+            angle = pi - angle
+        if angle < -pi/2:
+            angle = -pi - angle
+        if self.blue[1] > 400:
+            angle = -angle
         return angle
+
+    def j4(self):
+        blueyellow = self.yellow - self.blue
+        bluered = self.red - self.blue
+        angle = self.angle(bluered, blueyellow)
+        if angle > pi/2:
+            angle = pi - angle
+        if angle < -pi/2:
+            angle = -pi - angle
+
+        # TODO some quadrant based magic
+        return angle
+
+    # Recieve data from camera 1, process it
+    def callback1(self, data):
+        # Receive the image
+        try:
+            self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
+
+        print(self.red)
+        self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
+        self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
+        # only publish with callback 2 due to some nasty concurrency issues
 
     # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
@@ -169,17 +196,14 @@ class image_converter:
         im2 = cv2.imshow('Camera 2', self.cv_image2)
         cv2.waitKey(3)
 
-        joint_data = self.detect_joint_angles(self.cv_image2, 2)
-        self.red = self.get_xz(self.red, self.detect_red(self.cv_image1, 2))
-        self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image1, 2))
-        joint_angles = Float64MultiArray()
-        joint_angles = joint_data
+        self.red = self.get_xz(self.red, self.detect_red(self.cv_image2, 2))
+        self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image2, 2))
 
         # Publish the results
         try:
             self.robot_joint2_pub.publish(self.j2())  # joint_angles[0])
-            self.robot_joint3_pub.publish(joint_angles[1])
-            self.robot_joint4_pub.publish(joint_angles[2])
+            self.robot_joint3_pub.publish(self.j3())
+            self.robot_joint4_pub.publish(self.j4())
         except CvBridgeError as e:
             print(e)
 
