@@ -112,24 +112,32 @@ class image_converter:
     def abvector(self, a, b):
         return b - a
 
-    def joint2(self):
-        # calculate movement around y
+    def joint2(self, angle):
+        a = angle
+        if a > pi/2:
+            a = pi - a
+        if a < -pi/2:
+            a = -pi - a
+        if self.base_relative(self.blue)[0] < 0:  # Use other sign - necessary or curve imitates abs(sin)
+            a *= -1
+        return a
 
+    def joint3(self, angle):
+        a = angle
+        if a > pi/2:
+            a = pi - a
+        if a < -pi/2:
+            a = -pi - a
+        return a
 
-        angle = 111.1
-        return angle
-
-    def joint3(self):
-        angle = self.vec_angle(self.abvector(self.yellow, self.green), self.abvector(self.yellow, self.blue))
-        if angle > pi/2:
-            angle = pi - angle
-        elif angle < -pi/2:
-            angle = angle - pi
-        return angle
-
-    def joint4(self):
-        angle = self.vec_angle(self.abvector(self.blue, self.yellow), self.abvector(self.blue, self.red))
-        return angle
+    # TODO fix this
+    def joint4(self, angle):
+        a = angle
+        if a > pi/2:
+            a = pi - a
+        if a < -pi/2:
+            a = -pi - a
+        return a
 
     # makes coordinates relative to the green blob
     def base_relative(self, point):
@@ -143,13 +151,21 @@ class image_converter:
         y_unit = np.array([0, 1, 0])
         z_unit = np.array([0, 0, 1])
 
+        # rebasing things wrt the green blob because it makes thinking about the stinky maths easier
         r = self.base_relative(self.red)
         g = self.base_relative(self.green)
         b = self.base_relative(self.blue)
         y = self.base_relative(self.yellow)
         yb = b - y
+        br = r - b
 
         newframe = np.cross(y_unit, yb)
+        joint_2 = self.joint2(self.vec_angle(newframe, x_unit))
+        joint_3 = self.joint3(self.vec_angle(yb, y_unit)) - pi/2
+        joint_4 = self.joint4(self.vec_angle(-yb, br))  # are you sure?
+        if np.dot(br, newframe) <0:
+            joint_4 *= -1
+        return np.array([joint_2, joint_3, joint_4])
 
 
 
@@ -180,7 +196,7 @@ class image_converter:
         im2 = cv2.imshow('Camera 2', self.cv_image2)
         cv2.waitKey(3)
 
-        joint_data = self.detect_joint_angles(self.cv_image2, 2)
+        joint_data = self.calculate_joint_angles() #self.detect_joint_angles(self.cv_image2, 2)
 
         self.red = self.get_xz(self.red, self.detect_red(self.cv_image2, 2))
         self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image2, 2))
@@ -191,8 +207,8 @@ class image_converter:
         # Publish the results
         try:
             self.robot_joint2_pub.publish(self.joints[0])
-            self.robot_joint3_pub.publish(self.joint3())  # self.joints[1])
-            self.robot_joint4_pub.publish(self.vec_angle(self.blue, self.yellow, self.red))  # self.joints[2])
+            self.robot_joint3_pub.publish(self.joints[1])
+            self.robot_joint4_pub.publish(self.joints[2])
         except CvBridgeError as e:
             print(e)
 
