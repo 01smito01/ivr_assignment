@@ -19,7 +19,7 @@ class image_converter:
     def __init__(self):
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
-        r = rospy.Rate(100)  # attempt to stop the 1st callback being used like 3x as often as the 2nd
+        # r = rospy.Rate(100)  # attempt to stop the 1st callback being used like 3x as often as the 2nd
 
         # subscriptions
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
@@ -112,9 +112,10 @@ class image_converter:
     def abvector(self, a, b):
         return b - a
 
+    # Calculations for each joint to avoid angles outwith allowed range & return correct sign
     def joint1(self, angle):
         a = angle
-        if self.blue[0] < 400:
+        if self.rebase(self.blue)[0] < 0:
             a *= -1
         return a
 
@@ -156,7 +157,7 @@ class image_converter:
         y_unit = np.array([0, 1, 0])
         z_unit = np.array([0, 0, 1])
 
-        # rebasing things wrt the green blob because it makes thinking about the stinky maths easier
+        # rebasing wrt the green blob because it makes thinking about the stinky maths easier
         r = self.rebase(self.red)
         g = self.rebase(self.green)
         b = self.rebase(self.blue)
@@ -165,6 +166,7 @@ class image_converter:
         br = r - b
 
         newframe = np.cross(y_unit, yb)
+        print(newframe)
         joint_1 = self.joint1(self.vec_angle(yb[:2], -y_unit[:2]))
         joint_2 = self.joint2(self.vec_angle(newframe, x_unit))
         joint_3 = self.joint3(self.vec_angle(yb, y_unit)) - pi/2
