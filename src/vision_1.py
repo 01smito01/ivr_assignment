@@ -43,10 +43,10 @@ class vision_1:
         # initial positions for blobs (won't ever change for green and yellow)
         self.green = np.array([400.0, 400.0, 535.0])
         self.yellow = np.array([400.0, 400.0, 432.0])
-        self.red = np.array([400.0, 400.0, 350.0])
-        self.blue = np.array([400.0, 400.0, 278.0])
+        self.blue = np.array([400.0, 400.0, 350.0])
+        self.red = np.array([400.0, 400.0, 278.0])
 
-        self.p2m = self.pixel_to_meter()
+        self.p2m = self.pixel_to_meter()  # We don't actually use this lmao
 
     def detect_red(self, image, caller):
         mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))

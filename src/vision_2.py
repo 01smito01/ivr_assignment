@@ -41,11 +41,14 @@ class vision_2:
         # initial positions for blobs (won't ever change for green and yellow)
         self.green = np.array([400.0, 400.0, 535.0])
         self.yellow = np.array([400.0, 400.0, 432.0])
-        self.red = np.array([400.0, 400.0, 350.0])
-        self.blue = np.array([400.0, 400.0, 278.0])
+        self.blue = np.array([400.0, 400.0, 350.0])
+        self.red = np.array([400.0, 400.0, 278.0])
 
         self.p2m = self.pixel_to_meter()
 
+        self.lj1 = 0
+        self.lj3 = 0
+        self.lj4 = 0
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
@@ -98,6 +101,7 @@ class vision_2:
         return vector / np.linalg.norm(vector)
 
     # thank you stackoverflow, very cool!
+    # The advantage of this is that it doesn't spew maths errors when two vectors are at 0 or 180 degrees
     def angle(self, v1, v2):
         v1u = self.unit_vector(v1)
         v2u = self.unit_vector(v2)
@@ -121,17 +125,19 @@ class vision_2:
     def detect_joint_angles(self, image, caller):
         a = self.pixel_to_meter()
         center = a * self.yellow
+        center[2] *= -1
         c1Pos = a * self.green
         c2Pos = a * self.detect_blue(image, caller)
         c3Pos = a * self.detect_red(image, caller)
 
-        ja1 = np.arctan2(center[0] - c1Pos[0], center[1] - c1Pos[1])
-        ja2 = np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) -ja1
-        ja3 = np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
+        ja1 = np.arctan2(center[1] - c1Pos[1], center[0] - c1Pos[0])
+        ja2 = -np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) -ja1
+        ja3 = -np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
 
         return np.array([ja1, ja2, ja3])
 
     def j1(self):
+
         fy = np.array([0, 0, 0])  # Fake yellow
         fx = np.array([0,0,0])  # Fake vector along x axis
         fy[0], fy[1], fy[2] = 400, 400, self.blue[2]
@@ -150,6 +156,8 @@ class vision_2:
         print(test)
         if test[2] < 0:
             angle = -angle
+
+
         return angle
 
 
@@ -206,6 +214,7 @@ class vision_2:
 
         self.red = self.get_xz(self.red, self.detect_red(self.cv_image2, 2))
         self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image2, 2))
+        jointangles = self.detect_joint_angles(self.cv_image2, 2)
 
         # Publish the results
         try:
