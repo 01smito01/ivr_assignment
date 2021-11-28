@@ -20,7 +20,7 @@ from cv_bridge import CvBridge, CvBridgeError
 pi = np.pi
 
 
-class image_converter:
+class vision_1:
 
     # Defines publisher and subscriber
     def __init__(self):
@@ -198,7 +198,7 @@ class image_converter:
 
 # call the class
 def main(args):
-    ic = image_converter()
+    v1 = vision_1()
     try:
         rospy.spin()
     except KeyboardInterrupt:
