@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
 #This is a file
-import roslib
 import sys
 import rospy
 import cv2
 import numpy as np
-from std_msgs.msg import String
-from sensor_msgs.msg import Image
 from std_msgs.msg import Float64MultiArray, Float64
-from cv_bridge import CvBridge, CvBridgeError
+
 
 
 class control:
@@ -33,27 +30,19 @@ class control:
         self.joint3_sub = rospy.Subscriber("joint_angle_3", Float64, self.callback2)
         self.joint4_sub = rospy.Subscriber("joint_angle_4", Float64, self.callback3)
 
-        #subscribe to target_pos topic to get target positions for IK implementation
+        # subscribe to target_pos topic to get target positions for IK implementation
         self.target_sub = rospy.Subscriber("/target_control/target_pos", Float64MultiArray, self.callback)
 
-        #publishers
+        # publishers
         self.robot_joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
 
-
-        # initialize the bridge between openCV and ROS
-        self.bridge = CvBridge()
-
-        #initialize errors etc
+        # initialize errors etc
         self.time_initial = rospy.get_time()
         self.time_prev = np.array([rospy.get_time()], dtype='float64')
         self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
         self.errorderived = np.array([0.0, 0.0, 0.0], dtype='float64')
-
-
-
-
 
     def getJoints(self):
         joints = [j.data for j in control.joints]
@@ -64,7 +53,7 @@ class control:
         return np.array(targetget)
 
     def forward_kinematics(self, joints):
-        #calculate each entry for the array to return
+        # calculate each entry for the array to return
         effector1 = 3.2 * np.sin(joints[0]) * np.sin(joints[1]) + 2.8*(np.cos(joints[0])*np.sin(joints[2]) + np.sin(joints[0]*np.sin(joints[1]*np.cos(joints[2]))))
         effector2 = 2.8 * (np.sin(joints[0]) * np.sin(joints[2]) - np.cos(joints[0]) * np.sin(joints[1]) * np.cos(joints[2]))
         effector3 = -3.2 * (np.cos(joints[0]) * np.sin(joints[1])) * 2.8 * np.cos(joints[1]) * np.cos(joints[2]) + 3.2 * np.cos(joints[1]) +4
@@ -72,7 +61,7 @@ class control:
         return end_effector
 
     def jacobian(self, joints):
-        #calculate each jacobian matrix element individually (for readability)
+        # calculate each jacobian matrix element individually (for readability)
         j11 = np.sin(joints[1]) * np.cos(joints[2])
         j12 = joints[0] * np.cos(joints[1]) * np.cos(joints[2])
         j13 = -joints[0] * np.sin(joints[1]) + np.sin(joints[2])
@@ -90,7 +79,6 @@ class control:
         dt = curr_time - self.time_prev
         self.time_prev = curr_time
         q = self.getJoints()
-        print("q", q)
         target = self.getTarget()
         inv_j = np.linalg.pinv(self.jacobian(q))
         pos = np.array(self.forward_kinematics(q))
@@ -99,7 +87,7 @@ class control:
         desired_q = q + (dt * np.dot(inv_j, self.error.transpose()))
         return desired_q
 
-    #publish robot joint infornation
+    # receive data using callbacks and publish robot joint infornation
 
     def callback(self, data):
         rospy.loginfo("Target is %s", data.data)
@@ -136,8 +124,9 @@ class control:
 
 
 
+
 def main(args):
-    ic = control()
+    c = control()
     try:
         rospy.spin()
     except KeyboardInterrupt:
