@@ -97,6 +97,7 @@ class vision_2:
     def unit_vector(self, vector):
         return vector / np.linalg.norm(vector)
 
+    # thank you stackoverflow, very cool!
     def angle(self, v1, v2):
         v1u = self.unit_vector(v1)
         v2u = self.unit_vector(v2)
@@ -129,6 +130,28 @@ class vision_2:
         ja3 = np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
 
         return np.array([ja1, ja2, ja3])
+
+    def j1(self):
+        fy = np.array([0, 0, 0])  # Fake yellow
+        fx = np.array([0,0,0])  # Fake vector along x axis
+        fy[0], fy[1], fy[2] = 400, 400, self.blue[2]
+        fx[0], fx[1], fx[2] = 600, 400, self.blue[2]
+
+        fyb = self.blue - fy
+        fyfx = fx - fy
+        angle = self.angle(fyfx, fyb)
+
+        if angle > pi:
+            angle = pi - angle
+        if angle < -pi:
+            angle = -pi - angle
+
+        test = np.cross(fyfx, fyb)
+        print(test)
+        if test[2] < 0:
+            angle = -angle
+        return angle
+
 
     def j3(self):
         yellowgreen = self.green - self.yellow
@@ -166,7 +189,6 @@ class vision_2:
         except CvBridgeError as e:
             print(e)
 
-        print([str(self.blue[0] - 400), str(self.blue[1] - 400)])
         self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
         self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
         # only publish with callback 2 due to some nasty concurrency issues

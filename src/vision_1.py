@@ -168,7 +168,6 @@ class vision_1:
         except CvBridgeError as e:
             print(e)
 
-        print([str(self.blue[0] - 400), str(self.blue[1] - 400)])
         self.red = self.get_yz(self.red, self.detect_red(self.cv_image1, 1))
         self.blue = self.get_yz(self.blue, self.detect_blue(self.cv_image1, 1))
         # only publish with callback 2 due to some nasty concurrency issues
