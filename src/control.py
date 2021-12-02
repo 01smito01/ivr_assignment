@@ -19,6 +19,7 @@ class control:
 
 
 
+
     # Defines publisher and subscriber
     def __init__(self):
         # initialize the node named image_processing
@@ -56,23 +57,28 @@ class control:
         # calculate each entry for the array to return
         effector1 = 3.2 * np.sin(joints[0]) * np.sin(joints[1]) + 2.8*(np.cos(joints[0])*np.sin(joints[2]) + np.sin(joints[0]*np.sin(joints[1]*np.cos(joints[2]))))
         effector2 = 2.8 * (np.sin(joints[0]) * np.sin(joints[2]) - np.cos(joints[0]) * np.sin(joints[1]) * np.cos(joints[2]))
-        effector3 = -3.2 * (np.cos(joints[0]) * np.sin(joints[1])) * 2.8 * np.cos(joints[1]) * np.cos(joints[2]) + 3.2 * np.cos(joints[1]) +4
+        effector3 = -3.2 * (np.cos(joints[0]) * np.sin(joints[1])) * 2.8 * np.cos(joints[1]) * np.cos(joints[2]) + 3.2 * np.cos(joints[1]) + 4
         end_effector = np.array([effector1, effector2, effector3])
         return end_effector
 
     def jacobian(self, joints):
         # calculate each jacobian matrix element individually (for readability)
-        j11 = np.sin(joints[1]) * np.cos(joints[2])
-        j12 = joints[0] * np.cos(joints[1]) * np.cos(joints[2])
-        j13 = -joints[0] * np.sin(joints[1]) + np.sin(joints[2])
-        j21 = np.sin(joints[1]) * np.sin(joints[2])
-        j22 = joints[0] * np.cos(joints[1]) * np.sin(joints[2])
-        j23 = joints[0] * np.sin(joints[1]) * np.cos(joints[2])
-        j31 = np.cos(joints[1])
-        j32 = -joints[0] * np.sin(joints[1])
-        j33 = 0
-        jacobian = np.array([[j11, j12, j13], [j21, j22, j23], [j31, j32, j33]])
+        j11 = 3.2 * np.cos(joints[0]) * np.sin(joints[1]) - 2.8 * np.sin(joints[0]) * np.sin(joints[2]) + 2.8 * np.cos(joints[0]) * np.sin(joints[1]) * np.cos(joints[2])
+        j12 = 3.2 * np.sin(joints[0]) * np.cos(joints[1]) + 2.8 * np.sin(joints[0]) * np.cos(joints[1]) * np.cos(joints[2])
+        j13 = 2.8 * np.cos(joints[0]) * np.cos(joints[2]) - 2.8 * np.sin(joints[0]) * np.sin(joints[1]) * np.sin(joints[2])
+        j21 = 2.8 * np.cos(joints[0]) * np.sin(joints[2]) + 2.8 * np.sin(joints[0]) * np.sin(joints[1]) * np.cos(joints[2]) + 3.2 * np.sin(joints[0]) * np.sin(joints[1])
+        j22 = -2.8 * np.cos(joints[0]) * np.cos(joints[1]) * np.cos(joints[2]) - 3.2* np.cos(joints[0]) * np.cos(joints[1])
+        j23 = 2.8 * np.sin(joints[0]) * np.cos(joints[2]) + 2.8 * np.cos(joints[0]) * np.sin(joints[1]) * np.sin(joints[2])
+        j31 = 0
+        j32 = -2.8 * np.sin(joints[1]) * np.cos(joints[2]) - 3.2 * np.sin(joints[1])
+        j33 = -2.8 * np.cos(joints[1]) * np.sin(joints[2])
+        row1 = np.array([j11, j12, j13])
+        row2 = np.array([j21, j22, j23])
+        row3 = np.array([j31, j32, j33])
+        jacobian = np.array([row1, row2, row3])
         return jacobian
+
+
 
     def control(self):
         curr_time = rospy.get_time()
@@ -92,6 +98,7 @@ class control:
     def callback(self, data):
         rospy.loginfo("Target is %s", data.data)
         self.target.data = data.data
+
 
     def callback1(self, data):
         rospy.loginfo("Joint1 is %s", data.data)
@@ -113,6 +120,8 @@ class control:
         targetjoint3.data = q_d[1]
         targetjoint4 = Float64()
         targetjoint4.data = q_d[2]
+
+        print(q_d)
 
         self.robot_joint1_pub.publish(targetjoint1)
         self.robot_joint3_pub.publish(targetjoint3)
