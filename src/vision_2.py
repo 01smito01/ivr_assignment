@@ -46,9 +46,10 @@ class vision_2:
 
         self.p2m = self.pixel_to_meter()
 
-        self.lj1 = 0
-        self.lj3 = 0
-        self.lj4 = 0
+        self.j3h = False  # these booleans make the sign of angles proper
+        self.j3s = True
+        self.j4h = False
+        self.j4s = True
 
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
@@ -100,8 +101,7 @@ class vision_2:
     def unit_vector(self, vector):
         return vector / np.linalg.norm(vector)
 
-    # thank you stackoverflow, very cool!
-    # The advantage of this is that it doesn't spew maths errors when two vectors are at 0 or 180 degrees
+    # gets angle between vectors without collapsing if the vectors are in the same/opposite direction
     def angle(self, v1, v2):
         v1u = self.unit_vector(v1)
         v2u = self.unit_vector(v2)
@@ -122,24 +122,11 @@ class vision_2:
         temp[2] = detection[1]
         return np.array(temp)
 
-    def detect_joint_angles(self, image, caller):
-        a = self.pixel_to_meter()
-        center = a * self.yellow
-        center[2] *= -1
-        c1Pos = a * self.green
-        c2Pos = a * self.detect_blue(image, caller)
-        c3Pos = a * self.detect_red(image, caller)
-
-        ja1 = np.arctan2(center[1] - c1Pos[1], center[0] - c1Pos[0])
-        ja2 = -np.arctan2(c1Pos[0] - c2Pos[0], c1Pos[1] - c2Pos[1]) -ja1
-        ja3 = -np.arctan2(c2Pos[0] - c3Pos[0], c2Pos[1] - c3Pos[1]) - ja2 - ja1
-
-        return np.array([ja1, ja2, ja3])
 
     def j1(self):
 
-        fy = np.array([0, 0, 0])  # Fake yellow
-        fx = np.array([0,0,0])  # Fake vector along x axis
+        fy = np.array([0, 0, 0])  # Fake yellow blob @ same height as blue
+        fx = np.array([0,0,0])  # point along x axis @ same height as above
         fy[0], fy[1], fy[2] = 400, 400, self.blue[2]
         fx[0], fx[1], fx[2] = 600, 400, self.blue[2]
 
@@ -147,17 +134,17 @@ class vision_2:
         fyfx = fx - fy
         angle = self.angle(fyfx, fyb)
 
-        if angle > pi:
-            angle = pi - angle
-        if angle < -pi:
-            angle = -pi - angle
+        #if angle > pi:
+        #    angle = pi - angle
+        #if angle < -pi:
+        #    angle = -pi - angle
 
-        test = np.cross(fyfx, fyb)
-        print(test)
-        if test[2] < 0:
+        side = np.cross(fyfx, fyb)  # Use cross product to determine sign
+        if side[2] < 0:
             angle = -angle
 
-
+        if self.j3s is True:
+            angle = -angle
         return angle
 
 
@@ -171,7 +158,12 @@ class vision_2:
             angle = pi - angle
         if angle < -pi/2:
             angle = -pi - angle
-        if self.blue[1] > 400:
+        if abs(angle) < 0.1 and self.j3h is True:  # If the angle is small and it's previously been high
+            self.j3s = not self.j3s  # Safe to crossover
+            self.j3h = False
+        if abs(angle) > 1:
+            self.j3h = True
+        if self.j3s is False:
             angle = -angle
         return angle
 
@@ -183,10 +175,17 @@ class vision_2:
             angle = pi - angle
         if angle < -pi/2:
             angle = -pi - angle
+        if abs(angle) < 0.1 and self.j4h is True:  # If the angle is small and it's previously been high
+            self.j4s = not self.j4s  # Safe to crossover
+            self.j4h = False
+        if abs(angle) > 1:
+            self.j4h = True
+        if self.j4s is False:
+            angle = -angle
 
         # Simplistic quadrant maths to get correct sign
-        if self.blue[0] < 400 and self.blue[1] < 400:
-           angle = -angle
+        # if self.blue[0] < 400 and self.blue[1] < 400:
+        #  angle = -angle
         return angle
 
     # Recieve data from camera 1, process it
@@ -214,11 +213,10 @@ class vision_2:
 
         self.red = self.get_xz(self.red, self.detect_red(self.cv_image2, 2))
         self.blue = self.get_xz(self.blue, self.detect_blue(self.cv_image2, 2))
-        jointangles = self.detect_joint_angles(self.cv_image2, 2)
 
         # Publish the results
         try:
-            self.robot_joint1_pub.publish(self.j1())  # joint_angles[0])
+            self.robot_joint1_pub.publish(self.j1())
             self.robot_joint3_pub.publish(self.j3())
             self.robot_joint4_pub.publish(self.j4())
         except CvBridgeError as e:
