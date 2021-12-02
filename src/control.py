@@ -69,7 +69,7 @@ class control:
         j21 = 2.8 * np.cos(joints[0]) * np.sin(joints[2]) + 2.8 * np.sin(joints[0]) * np.sin(joints[1]) * np.cos(joints[2]) + 3.2 * np.sin(joints[0]) * np.sin(joints[1])
         j22 = -2.8 * np.cos(joints[0]) * np.cos(joints[1]) * np.cos(joints[2]) - 3.2* np.cos(joints[0]) * np.cos(joints[1])
         j23 = 2.8 * np.sin(joints[0]) * np.cos(joints[2]) + 2.8 * np.cos(joints[0]) * np.sin(joints[1]) * np.sin(joints[2])
-        j31 = 0
+        j31 = 1
         j32 = -2.8 * np.sin(joints[1]) * np.cos(joints[2]) - 3.2 * np.sin(joints[1])
         j33 = -2.8 * np.cos(joints[1]) * np.sin(joints[2])
         row1 = np.array([j11, j12, j13])
@@ -117,7 +117,7 @@ class control:
         targetjoint1 = Float64()
         targetjoint1.data = q_d[0]
         targetjoint3 = Float64()
-        targetjoint3.data = q_d[1]
+        targetjoint3.data =-1* q_d[1]
         targetjoint4 = Float64()
         targetjoint4.data = q_d[2]
 
